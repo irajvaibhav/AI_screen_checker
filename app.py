@@ -9,21 +9,17 @@ import google.generativeai as genai
 import concurrent.futures
 from mock_data import sample_job_descriptions, sample_candidates
 
-# I load the Gemini API Key from Streamlit Secrets or Environment Variables.
-# This prevents hardcoding the key and keeps it hidden and safe from being exposed on GitHub!
 GEMINI_API_KEY = ""
 if "GEMINI_API_KEY" in st.secrets:
     GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
 elif "GEMINI_API_KEY" in os.environ:
     GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
 
-# I configured the page title, icon, and wide layout to give it a professional dashboard look.
 st.set_page_config(
     page_title="Interviewkit.AI - Candidate Screening & Automation Dashboard",
     layout="wide"
 )
 
-# I wrote this function to extract clean text from uploaded PDF resumes.
 def extract_text_from_pdf(uploaded_file):
     try:
         pdf_reader = PyPDF2.PdfReader(uploaded_file)
@@ -34,46 +30,37 @@ def extract_text_from_pdf(uploaded_file):
                 text += page_text + "\n"
         return text.strip()
     except Exception as e:
-        # I handle any extraction errors gracefully to prevent the application from crashing.
         st.error(f"Error reading PDF {uploaded_file.name}: {e}")
         return ""
 
-# I implemented this local screening engine to analyze candidates when no Gemini API key is provided.
-# It matches keywords from the Job Description against the resume text.
 def local_screen_resume(resume_text, jd_text):
     import re
     resume_lower = resume_text.lower()
     jd_lower = jd_text.lower()
     
-    # List of key SDE, Data, and consulting skills I search for.
     common_skills = [
         "python", "node.js", "java", "aws", "postgresql", "sql", "pandas", "numpy", 
         "powerbi", "tableau", "mba", "strategy", "communication", "agile", 
         "roadmaps", "excel", "microservices", "docker", "fastapi", "react"
     ]
     
-    # I identify which of these skills are requested in the Job Description.
     target_skills = [skill for skill in common_skills if skill in jd_lower]
     if not target_skills:
-        # Fallback target skills if the Job Description doesn't contain standard keywords.
         target_skills = ["python", "sql", "communication"]
         
     matched_skills = []
     missing_skills = []
     
     for skill in target_skills:
-        # I use boundary matching to ensure we don't match substrings by accident.
         if re.search(r'\b' + re.escape(skill) + r'\b', resume_lower):
             matched_skills.append(skill)
         else:
             missing_skills.append(skill)
             
-    # I compute a match score based on the ratio of skills found.
     total_skills = len(target_skills)
     matched_count = len(matched_skills)
     score = int((matched_count / total_skills) * 100) if total_skills > 0 else 50
     
-    # I assign the candidate a fit recommendation based on their score.
     if score >= 80:
         recommendation = "Strong Fit"
     elif score >= 50:
@@ -89,7 +76,6 @@ def local_screen_resume(resume_text, jd_text):
     if not gaps:
         gaps = ["No critical skill gaps identified based on Job Description requirements."]
         
-    # I generate a standard invitation email template containing the matched skills.
     email_draft = (
         f"Hi Candidate,\n\n"
         f"Thank you for applying. We reviewed your profile and noticed your strong background in "
@@ -106,11 +92,9 @@ def local_screen_resume(resume_text, jd_text):
         "email_draft": email_draft
     }
 
-# I wrote this function to execute real LLM screenings using Gemini.
 def gemini_screen_resume(resume_text, jd_text, api_key):
     try:
         genai.configure(api_key=api_key)
-        # I use the standard gemini-3.5-flash model for fast and efficient textual evaluations.
         model = genai.GenerativeModel('gemini-3.5-flash')
         
         prompt = f"""
@@ -137,7 +121,6 @@ def gemini_screen_resume(resume_text, jd_text, api_key):
         response = model.generate_content(prompt)
         text = response.text.strip()
         
-        # I clean up any potential markdown wrapper backticks from the model's text response.
         if text.startswith("```json"):
             text = text[7:]
         if text.endswith("```"):
@@ -146,11 +129,9 @@ def gemini_screen_resume(resume_text, jd_text, api_key):
         data = json.loads(text.strip())
         return data
     except Exception as e:
-        # In case the API is blocked or key is invalid, I fall back to local heuristics to ensure no crashes.
         st.warning(f"Gemini API error. Falling back to local screening matching. Details: {e}")
         return local_screen_resume(resume_text, jd_text)
 
-# I wrote this function to analyze the pool of screened resumes and offer advice to optimize the JD.
 def generate_jd_insights(candidates_list, jd_text, api_key):
     if not candidates_list:
         return "Please screen candidates first to generate insights."
@@ -160,7 +141,6 @@ def generate_jd_insights(candidates_list, jd_text, api_key):
             genai.configure(api_key=api_key)
             model = genai.GenerativeModel('gemini-3.5-flash')
             
-            # I compile all candidate summaries to send to Gemini.
             pool_summary = "\n".join([
                 f"- Name: {c['name']}, Score: {c['score']}, Recommendation: {c['recommendation']}" 
                 for c in candidates_list
@@ -184,8 +164,6 @@ def generate_jd_insights(candidates_list, jd_text, api_key):
         except Exception as e:
             pass
             
-    # I provide local rule-based JD recommendations if there's no API key.
-    # It analyzes common missing requirements.
     return (
         "1. **Specify Cloud Tooling:** Multiple candidates list AWS/Cloud experience. Consider specifying if cloud architecture is an essential task.\n"
         "2. **Add Automation Workflows:** Recruiter workflows indicate a high demand for integration skills. Add Make.com or API tooling to the requirements.\n"
@@ -199,8 +177,6 @@ st.markdown("---")
 
 # --- SIDEBAR CONFIGURATION (INPUTS ONLY) ---
 st.sidebar.header("Settings")
-
-# The Gemini API Key is loaded automatically from secrets.toml behind the scenes, keeping the UI clean.
 gemini_key = GEMINI_API_KEY
 
 webhook_url = st.sidebar.text_input(
@@ -211,11 +187,9 @@ webhook_url = st.sidebar.text_input(
 st.sidebar.markdown("---")
 st.sidebar.header("Pipeline Setup")
 
-# Selection inputs styled naturally without emojis.
 jd_options = [jd["title"] for jd in sample_job_descriptions] + ["Custom Job Description"]
 selected_jd_title = st.sidebar.selectbox("Job Role", jd_options)
 
-# I resolve the selected JD description without rendering it in the sidebar to prevent visual clutter
 if selected_jd_title == "Custom Job Description":
     selected_jd_id = "custom"
     preset_desc = ""
@@ -224,7 +198,6 @@ else:
     selected_jd_id = preset_jd["id"]
     preset_desc = preset_jd["description"]
 
-# Toggle candidate input source (in sidebar)
 input_source = st.sidebar.radio("Resume Source", ["Use Demo Candidates", "Upload Custom Resumes"])
 
 uploaded_files = []
@@ -246,11 +219,9 @@ with st.expander("Job Description Requirements", expanded=(selected_jd_id == "cu
 
 # Render the primary action button in the sidebar (but execution is done after jd_text is defined)
 st.sidebar.markdown("---")
-# Removed rocket emoji for a cleaner, professional button style.
 trigger_analysis = st.sidebar.button("Screen Candidates", use_container_width=True, type="primary")
 
 # --- STATE MANAGEMENT ---
-# I initialize session state variables to store screen results and presentation slide indices.
 if "screen_results" not in st.session_state:
     st.session_state["screen_results"] = []
 if "current_slide" not in st.session_state:
@@ -264,7 +235,6 @@ if trigger_analysis:
             target_id = "sde" if selected_jd_id == "custom" else selected_jd_id
             pre_loaded = sample_candidates.get(target_id, [])
             
-            # Run parallel LLM calls if API key is loaded.
             if gemini_key:
                 with concurrent.futures.ThreadPoolExecutor() as executor:
                     futures = {
@@ -307,7 +277,6 @@ if trigger_analysis:
             if not uploaded_files:
                 st.sidebar.error("Please upload one or more resumes first!")
             else:
-                # Extract texts from all files first.
                 candidates_to_process = []
                 for file in uploaded_files:
                     file_text = ""
@@ -323,7 +292,6 @@ if trigger_analysis:
                             "resume_text": file_text
                         })
                 
-                # I process all uploaded resumes in parallel.
                 with concurrent.futures.ThreadPoolExecutor() as executor:
                     futures = {}
                     for cand in candidates_to_process:
@@ -352,7 +320,6 @@ if trigger_analysis:
                             "resume_text": cand["resume_text"]
                         })
                         
-        # Sort and store.
         results = sorted(results, key=lambda x: x["score"], reverse=True)
         st.session_state["screen_results"] = results
         st.session_state["current_slide"] = 0
@@ -361,7 +328,6 @@ if trigger_analysis:
 if st.session_state["screen_results"]:
     results_list = st.session_state["screen_results"]
     
-    # KPI metrics cards.
     total_screened = len(results_list)
     avg_score = int(sum(c["score"] for c in results_list) / total_screened)
     strong_fits = sum(1 for c in results_list if c["recommendation"] == "Strong Fit")
@@ -379,7 +345,6 @@ if st.session_state["screen_results"]:
         
     st.markdown("---")
     
-    # Clean tab names without emojis to mimic professional SaaS design
     tab1, tab2, tab3 = st.tabs(["Leaderboard", "Candidate Details", "Presentation Mode"])
     
     # TAB 1: LEADERBOARD & METRICS
@@ -413,8 +378,6 @@ if st.session_state["screen_results"]:
                 "Match Score (%)": [c["score"] for c in results_list]
             })
             
-            # I create a horizontal bar chart with rounded corners and sort candidates by score.
-            # This keeps name labels horizontal and highly readable!
             chart = alt.Chart(chart_df).mark_bar(
                 cornerRadiusBottomRight=4,
                 cornerRadiusTopRight=4,

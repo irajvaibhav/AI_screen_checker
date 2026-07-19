@@ -1,5 +1,3 @@
-# I defined these sample job descriptions to represent SDE, Data Analyst, and Consulting roles.
-# Each job has a clear ID, title, and key requirements text.
 sample_job_descriptions = [
     {
         "id": "sde",
@@ -18,9 +16,6 @@ sample_job_descriptions = [
     }
 ]
 
-# I grouped the candidate evaluation results by their target job ID.
-# This serves as our offline database, letting the recruiter test the dashboard instantly without needing a Gemini key.
-# I used common Indian names and gave each candidate a realistic set of skills, strengths, and weaknesses.
 sample_candidates = {
     "sde": [
         {
