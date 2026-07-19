@@ -20,7 +20,6 @@ elif "GEMINI_API_KEY" in os.environ:
 # I configured the page title, icon, and wide layout to give it a professional dashboard look.
 st.set_page_config(
     page_title="Interviewkit.AI - Candidate Screening & Automation Dashboard",
-    page_icon="🎯",
     layout="wide"
 )
 
@@ -194,34 +193,43 @@ def generate_jd_insights(candidates_list, jd_text, api_key):
     )
 
 # --- APPLICATION HEADER ---
-st.title("🎯 Interviewkit.AI")
-st.subheader("AI Resume Screening & Recruiting Automation Dashboard")
+st.title("Interviewkit.AI")
+st.subheader("Screening & Automation Dashboard")
 st.markdown("---")
 
 # --- SIDEBAR CONFIGURATION (INPUTS ONLY) ---
-st.sidebar.header("🔧 Configuration Panel")
+# I renamed the sidebar settings and removed typical AI-generated emojis.
+st.sidebar.header("Settings")
 
+# Instead of displaying a large green box which looks AI-generated, I render a disabled masked text area.
+# This makes it look like a professional SaaS system where the API key is secured and pre-loaded.
 if not GEMINI_API_KEY:
     gemini_key = st.sidebar.text_input(
-        "Google Gemini API Key", 
+        "Gemini API Key", 
         type="password", 
-        help="Enter your Gemini API key to enable live AI analysis. Leave blank to run on local matching engine."
+        placeholder="Enter API Key (optional)"
     )
 else:
     gemini_key = GEMINI_API_KEY
-    st.sidebar.success("🔑 Gemini API Key securely loaded")
+    st.sidebar.text_input(
+        "Gemini API Key",
+        value="••••••••••••••••••••",
+        disabled=True,
+        type="password",
+        help="API Key is loaded from secrets.toml"
+    )
 
 webhook_url = st.sidebar.text_input(
-    "Zapier / Make.com Webhook URL", 
-    help="Enter a webhook endpoint to trigger automated candidate outreach emails."
+    "Webhook URL", 
+    placeholder="Zapier or Make.com endpoint"
 )
 
 st.sidebar.markdown("---")
-st.sidebar.header("💼 Candidate Source Selection")
+st.sidebar.header("Pipeline Setup")
 
-# Dropdown to select presets (rendered in sidebar)
+# Selection inputs styled naturally without emojis.
 jd_options = [jd["title"] for jd in sample_job_descriptions] + ["Custom Job Description"]
-selected_jd_title = st.sidebar.selectbox("Select Target Job Role", jd_options)
+selected_jd_title = st.sidebar.selectbox("Job Role", jd_options)
 
 # I resolve the selected JD description without rendering it in the sidebar to prevent visual clutter
 if selected_jd_title == "Custom Job Description":
@@ -233,7 +241,7 @@ else:
     preset_desc = preset_jd["description"]
 
 # Toggle candidate input source (in sidebar)
-input_source = st.sidebar.radio("Candidate Resume Source", ["Pre-loaded Profiles", "Upload Custom Resumes"])
+input_source = st.sidebar.radio("Resume Source", ["Use Demo Candidates", "Upload Custom Resumes"])
 
 uploaded_files = []
 if input_source == "Upload Custom Resumes":
@@ -246,9 +254,7 @@ if input_source == "Upload Custom Resumes":
         st.sidebar.info(f"📂 {len(uploaded_files)} resume file(s) selected.")
 
 # --- MAIN PANEL: JOB DESCRIPTION EXPANDER (spacious & user-friendly) ---
-# I moved the JD text editor to the main panel. It is wider, prevents overlapping dropdown issues,
-# and makes it much easier to edit long text requirements.
-with st.expander("📝 View / Edit Job Description Requirements", expanded=(selected_jd_id == "custom")):
+with st.expander("Job Description Requirements", expanded=(selected_jd_id == "custom")):
     if selected_jd_id == "custom":
         jd_text = st.text_area("Paste or write your custom Job Description here:", height=150, help="Paste job details.")
     else:
@@ -256,7 +262,8 @@ with st.expander("📝 View / Edit Job Description Requirements", expanded=(sele
 
 # Render the primary action button in the sidebar (but execution is done after jd_text is defined)
 st.sidebar.markdown("---")
-trigger_analysis = st.sidebar.button("🚀 Screen Candidates", use_container_width=True, type="primary")
+# Removed rocket emoji for a cleaner, professional button style.
+trigger_analysis = st.sidebar.button("Screen Candidates", use_container_width=True, type="primary")
 
 # --- STATE MANAGEMENT ---
 # I initialize session state variables to store screen results and presentation slide indices.
@@ -266,10 +273,10 @@ if "current_slide" not in st.session_state:
     st.session_state["current_slide"] = 0
 
 if trigger_analysis:
-    with st.spinner("Analyzing candidate files in parallel..."):
+    with st.spinner("Analyzing candidate files..."):
         results = []
         
-        if input_source == "Pre-loaded Profiles":
+        if input_source == "Use Demo Candidates":
             target_id = "sde" if selected_jd_id == "custom" else selected_jd_id
             pre_loaded = sample_candidates.get(target_id, [])
             
@@ -316,6 +323,7 @@ if trigger_analysis:
             if not uploaded_files:
                 st.sidebar.error("Please upload one or more resumes first!")
             else:
+                # Extract texts from all files first.
                 candidates_to_process = []
                 for file in uploaded_files:
                     file_text = ""
@@ -381,13 +389,14 @@ if st.session_state["screen_results"]:
     with col_kpi2:
         st.metric("Average Match", f"{avg_score}%")
     with col_kpi3:
-        st.metric("🟢 Strong Fits", f"{strong_fits}")
+        st.metric("Strong Fits", f"{strong_fits}")
     with col_kpi4:
-        st.metric("🟡 Moderate Fits", f"{moderate_fits}")
+        st.metric("Moderate Fits", f"{moderate_fits}")
         
     st.markdown("---")
     
-    tab1, tab2, tab3 = st.tabs(["📊 Leaderboard & Analytics", "🔍 Candidate Profile Files", "🖥️ Recruiter Presentation Deck"])
+    # Clean tab names without emojis to mimic professional SaaS design
+    tab1, tab2, tab3 = st.tabs(["Leaderboard", "Candidate Details", "Presentation Mode"])
     
     # TAB 1: LEADERBOARD & METRICS
     with tab1:
@@ -413,7 +422,7 @@ if st.session_state["screen_results"]:
         col_chart_1, col_chart_2 = st.columns(2)
         
         with col_chart_1:
-            st.markdown("#### 📊 Candidate Match Scores")
+            st.markdown("#### Candidate Match Scores")
             chart_df = pd.DataFrame({
                 "CandidateName": [c["name"] for c in results_list],
                 "Match Score (%)": [c["score"] for c in results_list]
@@ -421,7 +430,7 @@ if st.session_state["screen_results"]:
             st.bar_chart(chart_df.set_index("CandidateName"), color="#4f46e5")
             
         with col_chart_2:
-            st.markdown("#### 💡 Job Description Optimization Insights")
+            st.markdown("#### Job Description Optimization Insights")
             insights = generate_jd_insights(results_list, jd_text, gemini_key)
             st.info(insights)
             
@@ -446,11 +455,11 @@ if st.session_state["screen_results"]:
                     st.markdown(f"### Candidate Assessment: {cand['name']}")
                     st.markdown(f"**Target Role:** {cand['role']}")
                     
-                    st.markdown("**✅ Key Strengths:**")
+                    st.markdown("**Key Strengths:**")
                     for strength in cand["strengths"]:
                         st.markdown(f"- {strength}")
                         
-                    st.markdown("**⚠️ Key Gaps & Weaknesses:**")
+                    st.markdown("**Key Gaps & Weaknesses:**")
                     for gap in cand["gaps"]:
                         st.markdown(f"- {gap}")
                         
@@ -463,7 +472,7 @@ if st.session_state["screen_results"]:
                         key=f"email_{cand['name'].replace(' ', '_')}"
                     )
                     
-                    if st.button("🚀 Automate Outreach Invite", key=f"btn_{cand['name'].replace(' ', '_')}", use_container_width=True):
+                    if st.button("Automate Outreach Invite", key=f"btn_{cand['name'].replace(' ', '_')}", use_container_width=True):
                         if webhook_url:
                             try:
                                 payload = {
