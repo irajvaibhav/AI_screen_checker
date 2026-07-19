@@ -198,26 +198,10 @@ st.subheader("Screening & Automation Dashboard")
 st.markdown("---")
 
 # --- SIDEBAR CONFIGURATION (INPUTS ONLY) ---
-# I renamed the sidebar settings and removed typical AI-generated emojis.
 st.sidebar.header("Settings")
 
-# Instead of displaying a large green box which looks AI-generated, I render a disabled masked text area.
-# This makes it look like a professional SaaS system where the API key is secured and pre-loaded.
-if not GEMINI_API_KEY:
-    gemini_key = st.sidebar.text_input(
-        "Gemini API Key", 
-        type="password", 
-        placeholder="Enter API Key (optional)"
-    )
-else:
-    gemini_key = GEMINI_API_KEY
-    st.sidebar.text_input(
-        "Gemini API Key",
-        value="••••••••••••••••••••",
-        disabled=True,
-        type="password",
-        help="API Key is loaded from secrets.toml"
-    )
+# The Gemini API Key is loaded automatically from secrets.toml behind the scenes, keeping the UI clean.
+gemini_key = GEMINI_API_KEY
 
 webhook_url = st.sidebar.text_input(
     "Webhook URL", 
