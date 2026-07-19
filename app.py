@@ -407,11 +407,25 @@ if st.session_state["screen_results"]:
         
         with col_chart_1:
             st.markdown("#### Candidate Match Scores")
+            import altair as alt
             chart_df = pd.DataFrame({
-                "CandidateName": [c["name"] for c in results_list],
+                "Candidate": [c["name"] for c in results_list],
                 "Match Score (%)": [c["score"] for c in results_list]
             })
-            st.bar_chart(chart_df.set_index("CandidateName"), color="#4f46e5")
+            
+            # I create a horizontal bar chart with rounded corners and sort candidates by score.
+            # This keeps name labels horizontal and highly readable!
+            chart = alt.Chart(chart_df).mark_bar(
+                cornerRadiusBottomRight=4,
+                cornerRadiusTopRight=4,
+                color="#6366f1"
+            ).encode(
+                x=alt.X("Match Score (%):Q", title="Match Score (%)", scale=alt.Scale(domain=[0, 100])),
+                y=alt.Y("Candidate:N", title="", sort="-x")
+            ).properties(
+                height=220
+            )
+            st.altair_chart(chart, use_container_width=True)
             
         with col_chart_2:
             st.markdown("#### Job Description Optimization Insights")
